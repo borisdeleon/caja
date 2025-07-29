@@ -1,0 +1,3047 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Caja y Bancos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #1cc88a;
+            --danger-color: #e74a3b;
+            --warning-color: #f6c23e;
+            --dark-color: #5a5c69;
+            --info-color: #36b9cc;
+        }
+        
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--dark-color);
+            font-weight: 600;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        .empresa-encabezado {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+        }
+        
+        .total-display {
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .total-entradas {
+            background-color: rgba(28, 200, 138, 0.1);
+            color: var(--secondary-color);
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .total-salidas {
+            background-color: rgba(231, 74, 59, 0.1);
+            color: var(--danger-color);
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .total-bancos {
+            background-color: rgba(54, 185, 204, 0.1);
+            color: var(--info-color);
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .btn-action {
+            min-width: 100px;
+        }
+        
+        .category-badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+        
+        .user-badge {
+            font-size: 0.8rem;
+            padding: 0.4em 0.7em;
+        }
+        
+        .bank-badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+            background-color: var(--info-color);
+        }
+        
+        /* Estilos para el reporte de impresión */
+        @media print {
+            body * {
+                visibility: hidden;
+                margin: 0;
+                padding: 0;
+            }
+            
+            #print-section, 
+            #print-section * {
+                visibility: visible;
+            }
+            
+            #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+                background: white;
+                z-index: 9999;
+                margin: 0;
+            }
+            
+            #print-section table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0;
+            }
+            
+            #print-section th, 
+            #print-section td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            
+            #print-section th {
+                background-color: #f2f2f2;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .tab-content {
+                padding: 10px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .login-container {
+                margin: 50px auto;
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="login-screen" class="login-container">
+        <div class="text-center mb-4">
+            <h2><i class="bi bi-cash-stack"></i> Sistema de Caja</h2>
+            <p class="text-muted">Ingrese sus credenciales</p>
+        </div>
+        <form id="login-form">
+            <div class="mb-3">
+                <label for="login-username" class="form-label">Usuario</label>
+                <input type="text" class="form-control" id="login-username" required>
+            </div>
+            <div class="mb-3">
+                <label for="login-password" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="login-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-box-arrow-in-right"></i> Ingresar
+            </button>
+        </form>
+    </div>
+
+    <!-- Sistema de Caja (oculto inicialmente) -->
+    <div id="app-container" style="display: none;" class="p-3 p-md-4">
+        <div class="container-fluid">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="bi bi-cash-stack me-2"></i>Sistema de Gestión de Caja y Bancos
+                    <span class="badge bg-primary user-badge ms-2" id="current-user-badge"></span>
+                    <span class="badge bg-secondary user-badge ms-1" id="current-jornada"></span>
+                </h1>
+                <div class="d-flex align-items-center">
+                    <span id="fecha-actual" class="me-3 text-muted"></span>
+                    <button id="logout-btn" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-box-arrow-left"></i> Cerrar Jornada
+                    </button>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#entradas">
+                                <i class="bi bi-box-arrow-in-down"></i> Entradas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#salidas">
+                                <i class="bi bi-box-arrow-up"></i> Salidas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#bancos">
+                                <i class="bi bi-bank"></i> Bancos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#categorias">
+                                <i class="bi bi-tags"></i> Categorías
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#usuarios">
+                                <i class="bi bi-people"></i> Usuarios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#resumen">
+                                <i class="bi bi-graph-up"></i> Resumen
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#configuracion">
+                                <i class="bi bi-gear"></i> Configuración
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content pt-3">
+                        <!-- Entradas -->
+                        <div class="tab-pane fade show active" id="entradas">
+                            <div class="row mb-4">
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Nueva Entrada</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-5">
+                                                    <label for="descripcionEntrada" class="form-label">Descripción*</label>
+                                                    <input type="text" id="descripcionEntrada" class="form-control" placeholder="Ej: Venta de productos" required>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label for="categoriaEntrada" class="form-label">Categoría*</label>
+                                                    <select id="categoriaEntrada" class="form-control" required>
+                                                        <option value="">Seleccione...</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="montoEntrada" class="form-label">Monto*</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text" id="monedaEntrada">Q</span>
+                                                        <input type="number" id="montoEntrada" class="form-control" placeholder="0.00" step="0.01" min="0.01" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="fechaEntrada" class="form-label">Fecha*</label>
+                                                    <input type="date" id="fechaEntrada" class="form-control" required>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button id="agregarEntrada" class="btn btn-success btn-action">
+                                                        <i class="bi bi-plus-circle"></i> Agregar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Filtros</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="filtroFechaDesdeEntrada" class="form-label">Desde</label>
+                                                <input type="date" id="filtroFechaDesdeEntrada" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroFechaHastaEntrada" class="form-label">Hasta</label>
+                                                <input type="date" id="filtroFechaHastaEntrada" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroCategoriaEntrada" class="form-label">Categoría</label>
+                                                <select id="filtroCategoriaEntrada" class="form-control">
+                                                    <option value="">Todas las categorías</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroUsuarioEntrada" class="form-label">Usuario</label>
+                                                <select id="filtroUsuarioEntrada" class="form-control">
+                                                    <option value="">Todos los usuarios</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltroEntradas()">
+                                                <i class="bi bi-x-circle"></i> Limpiar filtro
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h6 class="m-0 font-weight-bold">Registro de Entradas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover" id="tablaEntradas" width="100%" cellspacing="0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Descripción</th>
+                                                    <th>Categoría</th>
+                                                    <th>Monto</th>
+                                                    <th>Fecha</th>
+                                                    <th>Usuario</th>
+                                                    <th class="no-print">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="total-display total-entradas">
+                                <i class="bi bi-box-arrow-in-down"></i> Total Entradas: <span id="totalEntradas">0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Salidas -->
+                        <div class="tab-pane fade" id="salidas">
+                            <div class="row mb-4">
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Nueva Salida</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-5">
+                                                    <label for="descripcionSalida" class="form-label">Descripción*</label>
+                                                    <input type="text" id="descripcionSalida" class="form-control" placeholder="Ej: Compra de materiales" required>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label for="categoriaSalida" class="form-label">Categoría*</label>
+                                                    <select id="categoriaSalida" class="form-control" required>
+                                                        <option value="">Seleccione...</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="montoSalida" class="form-label">Monto*</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text" id="monedaSalida">Q</span>
+                                                        <input type="number" id="montoSalida" class="form-control" placeholder="0.00" step="0.01" min="0.01" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="fechaSalida" class="form-label">Fecha*</label>
+                                                    <input type="date" id="fechaSalida" class="form-control" required>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button id="agregarSalida" class="btn btn-danger btn-action">
+                                                        <i class="bi bi-plus-circle"></i> Agregar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Filtros</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="filtroFechaDesdeSalida" class="form-label">Desde</label>
+                                                <input type="date" id="filtroFechaDesdeSalida" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroFechaHastaSalida" class="form-label">Hasta</label>
+                                                <input type="date" id="filtroFechaHastaSalida" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroCategoriaSalida" class="form-label">Categoría</label>
+                                                <select id="filtroCategoriaSalida" class="form-control">
+                                                    <option value="">Todas las categorías</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroUsuarioSalida" class="form-label">Usuario</label>
+                                                <select id="filtroUsuarioSalida" class="form-control">
+                                                    <option value="">Todos los usuarios</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltroSalidas()">
+                                                <i class="bi bi-x-circle"></i> Limpiar filtro
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h6 class="m-0 font-weight-bold">Registro de Salidas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover" id="tablaSalidas" width="100%" cellspacing="0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Descripción</th>
+                                                    <th>Categoría</th>
+                                                    <th>Monto</th>
+                                                    <th>Fecha</th>
+                                                    <th>Usuario</th>
+                                                    <th class="no-print">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="total-display total-salidas">
+                                <i class="bi bi-box-arrow-up"></i> Total Salidas: <span id="totalSalidas">0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Bancos -->
+                        <div class="tab-pane fade" id="bancos">
+                            <div class="row mb-4">
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Nuevo Movimiento Bancario</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label for="tipoMovimientoBanco" class="form-label">Tipo*</label>
+                                                    <select id="tipoMovimientoBanco" class="form-control" required>
+                                                        <option value="">Seleccione...</option>
+                                                        <option value="ingreso">Ingreso</option>
+                                                        <option value="egreso">Egreso</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="cuentaBanco" class="form-label">Cuenta Bancaria*</label>
+                                                    <select id="cuentaBanco" class="form-control" required>
+                                                        <option value="">Seleccione...</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="descripcionBanco" class="form-label">Descripción*</label>
+                                                    <input type="text" id="descripcionBanco" class="form-control" placeholder="Ej: Depósito de cliente" required>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label for="categoriaBanco" class="form-label">Categoría*</label>
+                                                    <select id="categoriaBanco" class="form-control" required>
+                                                        <option value="">Seleccione...</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label for="montoBanco" class="form-label">Monto*</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text" id="monedaBanco">Q</span>
+                                                        <input type="number" id="montoBanco" class="form-control" placeholder="0.00" step="0.01" min="0.01" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label for="fechaBanco" class="form-label">Fecha*</label>
+                                                    <input type="date" id="fechaBanco" class="form-control" required>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label for="referenciaBanco" class="form-label">Referencia</label>
+                                                    <input type="text" id="referenciaBanco" class="form-control" placeholder="N° de cheque/transf">
+                                                </div>
+                                                <div class="col-12">
+                                                    <button id="agregarMovimientoBanco" class="btn btn-info btn-action">
+                                                        <i class="bi bi-plus-circle"></i> Agregar Movimiento
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Filtros</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="filtroFechaDesdeBanco" class="form-label">Desde</label>
+                                                <input type="date" id="filtroFechaDesdeBanco" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroFechaHastaBanco" class="form-label">Hasta</label>
+                                                <input type="date" id="filtroFechaHastaBanco" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroTipoBanco" class="form-label">Tipo</label>
+                                                <select id="filtroTipoBanco" class="form-control">
+                                                    <option value="">Todos</option>
+                                                    <option value="ingreso">Ingresos</option>
+                                                    <option value="egreso">Egresos</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroCuentaBanco" class="form-label">Cuenta Bancaria</label>
+                                                <select id="filtroCuentaBanco" class="form-control">
+                                                    <option value="">Todas las cuentas</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroCategoriaBanco" class="form-label">Categoría</label>
+                                                <select id="filtroCategoriaBanco" class="form-control">
+                                                    <option value="">Todas las categorías</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltroBancos()">
+                                                <i class="bi bi-x-circle"></i> Limpiar filtro
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h6 class="m-0 font-weight-bold">Registro de Movimientos Bancarios</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover" id="tablaBancos" width="100%" cellspacing="0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Tipo</th>
+                                                    <th>Cuenta</th>
+                                                    <th>Descripción</th>
+                                                    <th>Categoría</th>
+                                                    <th>Monto</th>
+                                                    <th>Fecha</th>
+                                                    <th>Referencia</th>
+                                                    <th>Usuario</th>
+                                                    <th class="no-print">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="total-display total-entradas">
+                                        <i class="bi bi-box-arrow-in-down"></i> Total Ingresos: <span id="totalIngresosBanco">0.00</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="total-display total-salidas">
+                                        <i class="bi bi-box-arrow-up"></i> Total Egresos: <span id="totalEgresosBanco">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="total-display total-bancos mt-3">
+                                <i class="bi bi-bank"></i> Saldo Total Bancos: <span id="saldoTotalBancos">0.00</span>
+                            </div>
+
+                            <div class="card mt-4">
+                                <div class="card-header bg-light">
+                                    <h6 class="m-0 font-weight-bold">Gestión de Cuentas Bancarias</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label for="nombreBanco" class="form-label">Nombre del Banco*</label>
+                                            <input type="text" id="nombreBanco" class="form-control" placeholder="Ej: Banco Industrial" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="numeroCuenta" class="form-label">Número de Cuenta*</label>
+                                            <input type="text" id="numeroCuenta" class="form-control" placeholder="123456789" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="tipoCuenta" class="form-label">Tipo de Cuenta*</label>
+                                            <select id="tipoCuenta" class="form-control" required>
+                                                <option value="">Seleccione...</option>
+                                                <option value="ahorro">Ahorro</option>
+                                                <option value="corriente">Corriente</option>
+                                                <option value="monetaria">Monetaria</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="saldoInicialBanco" class="form-label">Saldo Inicial</label>
+                                            <input type="number" id="saldoInicialBanco" class="form-control" placeholder="0.00" step="0.01" value="0">
+                                        </div>
+                                        <div class="col-12">
+                                            <button id="agregarCuentaBanco" class="btn btn-primary">
+                                                <i class="bi bi-plus-circle"></i> Agregar Cuenta
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <h6>Cuentas Bancarias Registradas</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered" id="tablaCuentasBancarias" width="100%" cellspacing="0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Banco</th>
+                                                        <th>N° Cuenta</th>
+                                                        <th>Tipo</th>
+                                                        <th>Saldo Actual</th>
+                                                        <th class="no-print">Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Categorías -->
+                        <div class="tab-pane fade" id="categorias">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Tipos de Ingresos</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-8">
+                                                    <label for="nuevaCategoriaEntrada" class="form-label">Nueva categoría de ingreso</label>
+                                                    <input type="text" id="nuevaCategoriaEntrada" class="form-control" placeholder="Ej: Ventas, Servicios, etc.">
+                                                </div>
+                                                <div class="col-md-4 d-flex align-items-end">
+                                                    <button id="agregarCategoriaEntrada" class="btn btn-success w-100">
+                                                        <i class="bi bi-plus-circle"></i> Agregar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <h6>Categorías existentes:</h6>
+                                                <ul id="listaCategoriasEntrada" class="list-group"></ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Tipos de Gastos</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-8">
+                                                    <label for="nuevaCategoriaSalida" class="form-label">Nueva categoría de gasto</label>
+                                                    <input type="text" id="nuevaCategoriaSalida" class="form-control" placeholder="Ej: Materiales, Salarios, etc.">
+                                                </div>
+                                                <div class="col-md-4 d-flex align-items-end">
+                                                    <button id="agregarCategoriaSalida" class="btn btn-danger w-100">
+                                                        <i class="bi bi-plus-circle"></i> Agregar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <h6>Categorías existentes:</h6>
+                                                <ul id="listaCategoriasSalida" class="list-group"></ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Usuarios -->
+                        <div class="tab-pane fade" id="usuarios">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Nuevo Usuario</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label for="nuevoUsuarioNombre" class="form-label">Nombre completo*</label>
+                                                    <input type="text" id="nuevoUsuarioNombre" class="form-control" placeholder="Nombre del usuario" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="nuevoUsuarioUsername" class="form-label">Usuario*</label>
+                                                    <input type="text" id="nuevoUsuarioUsername" class="form-control" placeholder="Nombre de usuario" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="nuevoUsuarioPassword" class="form-label">Contraseña*</label>
+                                                    <input type="password" id="nuevoUsuarioPassword" class="form-control" placeholder="Contraseña" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="nuevoUsuarioRol" class="form-label">Rol*</label>
+                                                    <select id="nuevoUsuarioRol" class="form-control" required>
+                                                        <option value="cajero">Cajero</option>
+                                                        <option value="admin">Administrador</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button id="agregarUsuario" class="btn btn-primary w-100">
+                                                        <i class="bi bi-plus-circle"></i> Agregar Usuario
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Usuarios Registrados</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered" id="tablaUsuarios" width="100%" cellspacing="0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Nombre</th>
+                                                            <th>Usuario</th>
+                                                            <th>Rol</th>
+                                                            <th class="no-print">Acción</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resumen -->
+                        <div class="tab-pane fade" id="resumen">
+                            <div class="empresa-encabezado" id="encabezadoEmpresa">Nombre de la Empresa</div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Filtros</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="filtroFechaDesdeResumen" class="form-label">Desde</label>
+                                                <input type="date" id="filtroFechaDesdeResumen" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroFechaHastaResumen" class="form-label">Hasta</label>
+                                                <input type="date" id="filtroFechaHastaResumen" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="tipoMovimientoResumen" class="form-label">Tipo de movimiento</label>
+                                                <select id="tipoMovimientoResumen" class="form-control">
+                                                    <option value="Todos">Todos</option>
+                                                    <option value="Entradas">Entradas</option>
+                                                    <option value="Salidas">Salidas</option>
+                                                    <option value="Bancos">Bancos</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroCategoriaResumen" class="form-label">Categoría</label>
+                                                <select id="filtroCategoriaResumen" class="form-control">
+                                                    <option value="">Todas las categorías</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="filtroUsuarioResumen" class="form-label">Usuario</label>
+                                                <select id="filtroUsuarioResumen" class="form-control">
+                                                    <option value="">Todos los usuarios</option>
+                                                </select>
+                                            </div>
+                                            <button id="generarResumen" class="btn btn-primary w-100">
+                                                <i class="bi bi-arrow-repeat"></i> Generar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Resumen de Caja y Bancos</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-start border-primary border-4 h-100">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <div class="text-muted small">ENTRADAS</div>
+                                                                    <div class="h4 mb-0 text-primary" id="resumenEntradas">Q0.00</div>
+                                                                </div>
+                                                                <i class="bi bi-box-arrow-in-down text-primary fs-3"></i>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-start border-danger border-4 h-100">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <div class="text-muted small">SALIDAS</div>
+                                                                    <div class="h4 mb-0 text-danger" id="resumenSalidas">Q0.00</div>
+                                                                </div>
+                                                                <i class="bi bi-box-arrow-up text-danger fs-3"></i>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-start border-info border-4 h-100">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <div class="text-muted small">BANCOS</div>
+                                                                    <div class="h4 mb-0 text-info" id="resumenBancos">Q0.00</div>
+                                                                </div>
+                                                                <i class="bi bi-bank text-info fs-3"></i>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-start border-success border-4 h-100">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <div class="text-muted small">SALDO</div>
+                                                                    <div class="h4 mb-0 text-success" id="resumenSaldo">Q0.00</div>
+                                                                </div>
+                                                                <i class="bi bi-cash-stack text-success fs-3"></i>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-4 no-print">
+                                                <button id="btnImprimir" class="btn btn-secondary me-2">
+                                                    <i class="bi bi-printer"></i> Imprimir Reporte
+                                                </button>
+                                                <button id="btnExportarJornada" class="btn btn-warning">
+                                                    <i class="bi bi-file-earmark-pdf"></i> Reporte Jornada
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuración -->
+                        <div class="tab-pane fade" id="configuracion">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Información de la Empresa</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="nombreEmpresa" class="form-label">Nombre*</label>
+                                                <input type="text" id="nombreEmpresa" class="form-control" placeholder="Nombre de la Empresa" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="telefonoEmpresa" class="form-label">Teléfono</label>
+                                                <input type="text" id="telefonoEmpresa" class="form-control" placeholder="Teléfono">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="correoEmpresa" class="form-label">Correo</label>
+                                                <input type="email" id="correoEmpresa" class="form-control" placeholder="Correo">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="direccionEmpresa" class="form-label">Dirección</label>
+                                                <input type="text" id="direccionEmpresa" class="form-control" placeholder="Dirección">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-light">
+                                            <h6 class="m-0 font-weight-bold">Configuración del Sistema</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="monedaEmpresa" class="form-label">Moneda*</label>
+                                                <select id="monedaEmpresa" class="form-control" required>
+                                                    <option value="Q">Quetzales (Q)</option>
+                                                    <option value="$">Dólares ($)</option>
+                                                    <option value="€">Euros (€)</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Usuario actual*</label>
+                                                <input type="text" class="form-control" value="Administrador" readonly>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="contrasenaEmpresa" class="form-label">Cambiar contraseña</label>
+                                                <input type="password" id="contrasenaEmpresa" class="form-control" placeholder="Nueva contraseña">
+                                            </div>
+                                            <div class="mb-3">
+                                                <button id="guardarConfiguracion" class="btn btn-primary w-100">
+                                                    <i class="bi bi-save"></i> Guardar Configuración
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección oculta para impresión -->
+    <div id="print-section" style="display: none;"></div>
+
+    <!-- Toast Notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Notificación</strong>
+                <small id="toastTime">Ahora</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                Operación realizada con éxito
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para confirmar cierre de jornada -->
+    <div class="modal fade" id="cierreJornadaModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cierre de Jornada</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro que desea cerrar la jornada laboral?</p>
+                    <div class="mb-3">
+                        <label for="montoCierre" class="form-label">Monto en caja al cierre:</label>
+                        <input type="number" id="montoCierre" class="form-control" step="0.01" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label for="observacionesCierre" class="form-label">Observaciones:</label>
+                        <textarea id="observacionesCierre" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirmarCierreJornada">Confirmar Cierre</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Movimiento -->
+    <div class="modal fade" id="modalEditarMovimiento" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Movimiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editarIdMovimiento">
+                    <input type="hidden" id="editarTipoMovimiento">
+                    <div class="mb-3">
+                        <label for="editarDescripcion" class="form-label">Descripción</label>
+                        <input type="text" id="editarDescripcion" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarCategoria" class="form-label">Categoría</label>
+                        <select id="editarCategoria" class="form-control"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarMonto" class="form-label">Monto</label>
+                        <input type="number" id="editarMonto" class="form-control" step="0.01" min="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarFecha" class="form-label">Fecha</label>
+                        <input type="date" id="editarFecha" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEdicionMovimiento()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Movimiento Bancario -->
+    <div class="modal fade" id="modalEditarMovimientoBanco" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Movimiento Bancario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editarIdMovimientoBanco">
+                    <div class="mb-3">
+                        <label for="editarTipoMovimientoBanco" class="form-label">Tipo*</label>
+                        <select id="editarTipoMovimientoBanco" class="form-control" required>
+                            <option value="ingreso">Ingreso</option>
+                            <option value="egreso">Egreso</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarCuentaBanco" class="form-label">Cuenta Bancaria*</label>
+                        <select id="editarCuentaBanco" class="form-control" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarDescripcionBanco" class="form-label">Descripción*</label>
+                        <input type="text" id="editarDescripcionBanco" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarCategoriaBanco" class="form-label">Categoría*</label>
+                        <select id="editarCategoriaBanco" class="form-control" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarMontoBanco" class="form-label">Monto*</label>
+                        <input type="number" id="editarMontoBanco" class="form-control" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarFechaBanco" class="form-label">Fecha*</label>
+                        <input type="date" id="editarFechaBanco" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editarReferenciaBanco" class="form-label">Referencia</label>
+                        <input type="text" id="editarReferenciaBanco" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEdicionMovimientoBanco()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Variables globales
+        let entradas = [];
+        let salidas = [];
+        let movimientosBancarios = [];
+        let cuentasBancarias = [];
+        let categoriasEntrada = ['Ventas', 'Servicios', 'Préstamos'];
+        let categoriasSalida = ['Materiales', 'Salarios', 'Alquiler'];
+        let categoriasBanco = ['Depósitos', 'Transferencias', 'Pagos', 'Comisiones', 'Intereses'];
+        let usuarios = [
+            { id: 1, nombre: 'Administrador', username: 'admin', password: 'admin123', rol: 'admin', activo: true }
+        ];
+        let jornadas = [];
+        let configuracion = {
+            nombreEmpresa: "Mi Empresa",
+            moneda: "Q",
+            telefono: "",
+            correo: "",
+            direccion: ""
+        };
+        let usuarioActual = null;
+        let jornadaActual = null;
+
+        // DOM Ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar fecha actual
+            mostrarFechaActual();
+            
+            // Cargar datos guardados
+            cargarDatos();
+            
+            // Configurar eventos
+            configurarEventos();
+            
+            // Inicializar toasts
+            const toastEl = document.getElementById('liveToast');
+            window.toast = new bootstrap.Toast(toastEl);
+            
+            // Inicializar modal
+            window.cierreJornadaModal = new bootstrap.Modal(document.getElementById('cierreJornadaModal'));
+            
+            // Mostrar pantalla de login
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('app-container').style.display = 'none';
+        });
+
+        // Funciones principales
+        function mostrarFechaActual() {
+            const fecha = new Date();
+            document.getElementById('fecha-actual').textContent = fecha.toLocaleDateString('es-GT', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Establecer fecha actual en los inputs de fecha
+            const hoy = new Date().toLocaleDateString('sv-SE'); // formato yyyy-mm-dd
+            document.getElementById('fechaEntrada').value = hoy;
+            document.getElementById('fechaSalida').value = hoy;
+            document.getElementById('fechaBanco').value = hoy;
+            document.getElementById('filtroFechaDesdeResumen').value = hoy;
+            document.getElementById('filtroFechaHastaResumen').value = hoy;
+        }
+
+        function cargarDatos() {
+            // Verificar disponibilidad de localStorage
+            if (!localStorageAvailable()) {
+                mostrarToast('Error', 'El almacenamiento local no está disponible', 'error');
+                return;
+            }
+
+            // Cargar desde localStorage
+            const datosGuardados = localStorage.getItem('sistemaCaja');
+            if (datosGuardados) {
+                try {
+                    const datos = JSON.parse(datosGuardados);
+                    entradas = datos.entradas || [];
+                    salidas = datos.salidas || [];
+                    movimientosBancarios = datos.movimientosBancarios || [];
+                    cuentasBancarias = datos.cuentasBancarias || [];
+                    categoriasEntrada = datos.categoriasEntrada || ['Ventas', 'Servicios', 'Préstamos'];
+                    categoriasSalida = datos.categoriasSalida || ['Materiales', 'Salarios', 'Alquiler'];
+                    categoriasBanco = datos.categoriasBanco || ['Depósitos', 'Transferencias', 'Pagos', 'Comisiones', 'Intereses'];
+                    usuarios = datos.usuarios || [
+                        { id: 1, nombre: 'Administrador', username: 'admin', password: 'admin123', rol: 'admin', activo: true }
+                    ];
+                    jornadas = datos.jornadas || [];
+                    configuracion = datos.configuracion || {
+                        nombreEmpresa: "Mi Empresa",
+                        moneda: "Q",
+                        telefono: "",
+                        correo: "",
+                        direccion: ""
+                    };
+                    
+                    // Actualizar UI con configuración
+                    actualizarConfiguracionUI();
+                } catch (e) {
+                    console.error('Error al parsear datos:', e);
+                    mostrarToast('Error', 'Error al cargar los datos guardados', 'error');
+                }
+            }
+            
+            // Mostrar datos en tablas
+            actualizarTablaEntradas();
+            actualizarTablaSalidas();
+            actualizarTablaMovimientosBancarios();
+            actualizarTablaCuentasBancarias();
+            actualizarTablaUsuarios();
+            actualizarResumen();
+            actualizarSelectCategorias();
+            actualizarSelectUsuarios();
+            actualizarSelectCuentasBancarias();
+        }
+
+        function guardarDatos() {
+            const datos = {
+                entradas,
+                salidas,
+                movimientosBancarios,
+                cuentasBancarias,
+                categoriasEntrada,
+                categoriasSalida,
+                categoriasBanco,
+                usuarios,
+                jornadas,
+                configuracion
+            };
+            
+            try {
+                localStorage.setItem('sistemaCaja', JSON.stringify(datos));
+                console.log('Datos guardados correctamente');
+                return true;
+            } catch (e) {
+                console.error('Error al guardar datos:', e);
+                mostrarToast('Error', 'No se pudieron guardar los cambios. El almacenamiento local puede estar lleno.', 'error');
+                return false;
+            }
+        }
+
+        function localStorageAvailable() {
+            try {
+                const test = 'test';
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                return true;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        function configurarEventos() {
+            // Login
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                realizarLogin();
+            });
+            
+            document.getElementById('logout-btn').addEventListener('click', function() {
+                iniciarCierreJornada();
+            });
+            
+            document.getElementById('confirmarCierreJornada').addEventListener('click', function() {
+                cerrarJornada();
+            });
+            
+            // Entradas
+            document.getElementById('agregarEntrada').addEventListener('click', agregarEntrada);
+            document.getElementById('filtroFechaDesdeEntrada').addEventListener('change', actualizarTablaEntradas);
+            document.getElementById('filtroFechaHastaEntrada').addEventListener('change', actualizarTablaEntradas);
+            document.getElementById('filtroCategoriaEntrada').addEventListener('change', actualizarTablaEntradas);
+            document.getElementById('filtroUsuarioEntrada').addEventListener('change', actualizarTablaEntradas);
+            
+            // Salidas
+            document.getElementById('agregarSalida').addEventListener('click', agregarSalida);
+            document.getElementById('filtroFechaDesdeSalida').addEventListener('change', actualizarTablaSalidas);
+            document.getElementById('filtroFechaHastaSalida').addEventListener('change', actualizarTablaSalidas);
+            document.getElementById('filtroCategoriaSalida').addEventListener('change', actualizarTablaSalidas);
+            document.getElementById('filtroUsuarioSalida').addEventListener('change', actualizarTablaSalidas);
+            
+            // Bancos
+            document.getElementById('agregarMovimientoBanco').addEventListener('click', agregarMovimientoBanco);
+            document.getElementById('agregarCuentaBanco').addEventListener('click', agregarCuentaBanco);
+            document.getElementById('filtroFechaDesdeBanco').addEventListener('change', actualizarTablaMovimientosBancarios);
+            document.getElementById('filtroFechaHastaBanco').addEventListener('change', actualizarTablaMovimientosBancarios);
+            document.getElementById('filtroTipoBanco').addEventListener('change', actualizarTablaMovimientosBancarios);
+            document.getElementById('filtroCuentaBanco').addEventListener('change', actualizarTablaMovimientosBancarios);
+            document.getElementById('filtroCategoriaBanco').addEventListener('change', actualizarTablaMovimientosBancarios);
+            
+            // Categorías
+            document.getElementById('agregarCategoriaEntrada').addEventListener('click', function() {
+                agregarCategoria('entrada');
+            });
+            document.getElementById('agregarCategoriaSalida').addEventListener('click', function() {
+                agregarCategoria('salida');
+            });
+            
+            // Usuarios
+            document.getElementById('agregarUsuario').addEventListener('click', agregarUsuario);
+            
+            // Resumen
+            document.getElementById('generarResumen').addEventListener('click', actualizarResumen);
+            document.getElementById('btnImprimir').addEventListener('click', generarReporteImpresion);
+            document.getElementById('btnExportarJornada').addEventListener('click', generarReporteJornadaPDF);
+            
+            // Configuración
+            document.getElementById('guardarConfiguracion').addEventListener('click', guardarConfiguracion);
+        }
+
+        function realizarLogin() {
+            const usernameInput = document.getElementById('login-username');
+            const passwordInput = document.getElementById('login-password');
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+            
+            // Validaciones mejoradas
+            if (!username || !password) {
+                mostrarToast('Error', 'Por favor complete todos los campos', 'error');
+                usernameInput.focus();
+                return;
+            }
+            
+            if (username.length < 3 || password.length < 4) {
+                mostrarToast('Error', 'Usuario o contraseña demasiado cortos', 'error');
+                passwordInput.focus();
+                return;
+            }
+            
+            // Buscar usuario (case insensitive)
+            const usuario = usuarios.find(u => 
+                u.username.toLowerCase() === username.toLowerCase() && 
+                u.password === password && 
+                u.activo !== false
+            );
+            
+            if (usuario) {
+                usuarioActual = usuario;
+                iniciarJornada();
+                
+                // Transición segura entre pantallas
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                
+                // Actualizar UI
+                document.getElementById('current-user-badge').textContent = usuario.nombre;
+                mostrarToast('Éxito', `Bienvenido ${usuario.nombre}`);
+                
+                // Control de accesos según rol
+                const pestañaUsuarios = document.querySelector('a[href="#usuarios"]').parentElement;
+                const pestañaConfig = document.querySelector('a[href="#configuracion"]').parentElement;
+                
+                if (usuario.rol !== 'admin') {
+                    pestañaUsuarios.style.display = 'none';
+                    pestañaConfig.style.display = 'none';
+                } else {
+                    pestañaUsuarios.style.display = 'block';
+                    pestañaConfig.style.display = 'block';
+                }
+            } else {
+                mostrarToast('Error', 'Credenciales incorrectas o usuario inactivo', 'error');
+                passwordInput.value = '';
+                usernameInput.focus();
+            }
+        }
+
+        function iniciarJornada() {
+            const fecha = new Date();
+            jornadaActual = {
+                id: Date.now(),
+                usuario: usuarioActual.username,
+                fechaInicio: fecha.toISOString(),
+                fechaFin: null,
+                entradas: [],
+                salidas: [],
+                movimientosBancarios: [],
+                montoInicial: 0,
+                montoCierre: null,
+                observaciones: ''
+            };
+            
+            document.getElementById('current-jornada').textContent = `Jornada: ${fecha.toLocaleDateString()}`;
+        }
+
+        function iniciarCierreJornada() {
+            // Calcular totales de la jornada actual
+            const totalEntradas = entradas
+                .filter(e => new Date(e.fecha).toDateString() === new Date().toDateString() && e.usuario === usuarioActual.username)
+                .reduce((sum, e) => sum + e.monto, 0);
+            
+            const totalSalidas = salidas
+                .filter(s => new Date(s.fecha).toDateString() === new Date().toDateString() && s.usuario === usuarioActual.username)
+                .reduce((sum, s) => sum + s.monto, 0);
+            
+            const saldo = totalEntradas - totalSalidas;
+            
+            document.getElementById('montoCierre').value = saldo.toFixed(2);
+            window.cierreJornadaModal.show();
+        }
+
+        function cerrarJornada() {
+            const fecha = new Date();
+            const montoCierre = parseFloat(document.getElementById('montoCierre').value) || 0;
+            const observaciones = document.getElementById('observacionesCierre').value;
+            
+            // Calcular totales de la jornada actual
+            const entradasJornada = entradas.filter(e => 
+                new Date(e.fecha).toDateString() === new Date().toDateString() && 
+                e.usuario === usuarioActual.username
+            );
+            
+            const salidasJornada = salidas.filter(s => 
+                new Date(s.fecha).toDateString() === new Date().toDateString() && 
+                s.usuario === usuarioActual.username
+            );
+            
+            const movimientosBancariosJornada = movimientosBancarios.filter(m => 
+                new Date(m.fecha).toDateString() === new Date().toDateString() && 
+                m.usuario === usuarioActual.username
+            );
+            
+            const totalEntradas = entradasJornada.reduce((sum, e) => sum + e.monto, 0);
+            const totalSalidas = salidasJornada.reduce((sum, s) => sum + s.monto, 0);
+            
+            jornadaActual.fechaFin = fecha.toISOString();
+            jornadaActual.entradas = entradasJornada;
+            jornadaActual.salidas = salidasJornada;
+            jornadaActual.movimientosBancarios = movimientosBancariosJornada;
+            jornadaActual.montoCierre = montoCierre;
+            jornadaActual.observaciones = observaciones;
+            
+            jornadas.push(jornadaActual);
+            
+            if (!guardarDatos()) {
+                return; // No continuar si no se pudo guardar
+            }
+            
+            window.cierreJornadaModal.hide();
+            usuarioActual = null;
+            jornadaActual = null;
+            
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('login-form').reset();
+            
+            mostrarToast('Éxito', 'Jornada cerrada correctamente');
+        }
+
+        // Funciones para entradas
+        function agregarEntrada() {
+            if (!usuarioActual) {
+                mostrarToast('Error', 'Debe iniciar sesión primero', 'error');
+                return;
+            }
+            
+            const descripcion = document.getElementById('descripcionEntrada').value.trim();
+            const categoria = document.getElementById('categoriaEntrada').value;
+            const monto = parseFloat(document.getElementById('montoEntrada').value);
+            const fecha = document.getElementById('fechaEntrada').value;
+            
+            if (!descripcion || !categoria || isNaN(monto) || monto <= 0 || !fecha) {
+                mostrarToast('Error', 'Por favor complete todos los campos correctamente', 'error');
+                return;
+            }
+            
+            const nuevaEntrada = {
+                id: Date.now(),
+                descripcion,
+                categoria,
+                monto,
+                fecha: new Date(fecha + 'T00:00:00').toLocaleDateString('sv-SE'), // yyyy-mm-dd
+                usuario: usuarioActual.username,
+                fechaRegistro: new Date().toLocaleString()
+            };
+            
+            entradas.push(nuevaEntrada);
+            
+            if (!guardarDatos()) {
+                entradas.pop(); // Revertir si no se pudo guardar
+                return;
+            }
+            
+            actualizarTablaEntradas();
+            actualizarResumen();
+            
+            // Limpiar formulario
+            document.getElementById('descripcionEntrada').value = '';
+            document.getElementById('montoEntrada').value = '';
+            document.getElementById('descripcionEntrada').focus();
+            
+            mostrarToast('Éxito', 'Entrada agregada correctamente');
+        }
+
+        function actualizarTablaEntradas() {
+            const tbody = document.querySelector('#tablaEntradas tbody');
+            tbody.innerHTML = '';
+            
+            let total = 0;
+            const fechaDesde = document.getElementById('filtroFechaDesdeEntrada').value;
+            const fechaHasta = document.getElementById('filtroFechaHastaEntrada').value;
+            const categoriaFiltro = document.getElementById('filtroCategoriaEntrada').value;
+            const usuarioFiltro = document.getElementById('filtroUsuarioEntrada').value;
+            
+            let entradasFiltradas = [...entradas]; // Copia del array original
+            
+            // Filtrar por rango de fechas
+            if (fechaDesde) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.fecha >= fechaDesde);
+            }
+            
+            if (fechaHasta) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.fecha <= fechaHasta);
+            }
+            
+            if (categoriaFiltro) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.categoria === categoriaFiltro);
+            }
+            
+            if (usuarioFiltro) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.usuario === usuarioFiltro);
+            }
+            
+            entradasFiltradas.forEach(entrada => {
+                total += entrada.monto;
+                
+                const usuario = usuarios.find(u => u.username === entrada.usuario);
+                const nombreUsuario = usuario ? usuario.nombre : entrada.usuario;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entrada.descripcion}</td>
+                    <td><span class="badge bg-primary category-badge">${entrada.categoria}</span></td>
+                    <td>${configuracion.moneda}${entrada.monto.toFixed(2)}</td>
+                    <td>${formatearFecha(entrada.fecha)}</td>
+                    <td>${nombreUsuario}</td>
+                    <td class="no-print">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editarMovimiento(${entrada.id}, 'entrada')">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarEntrada(${entrada.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('totalEntradas').textContent = total.toFixed(2);
+        }
+
+        function eliminarEntrada(id) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden eliminar entradas', 'error');
+                return;
+            }
+            
+            if (confirm('¿Está seguro que desea eliminar esta entrada?')) {
+                const index = entradas.findIndex(e => e.id === id);
+                if (index !== -1) {
+                    const entradaEliminada = entradas.splice(index, 1)[0];
+                    
+                    if (!guardarDatos()) {
+                        entradas.splice(index, 0, entradaEliminada); // Revertir si no se pudo guardar
+                        return;
+                    }
+                    
+                    actualizarTablaEntradas();
+                    actualizarResumen();
+                    mostrarToast('Éxito', 'Entrada eliminada correctamente');
+                }
+            }
+        }
+
+        function limpiarFiltroEntradas() {
+            document.getElementById('filtroFechaDesdeEntrada').value = '';
+            document.getElementById('filtroFechaHastaEntrada').value = '';
+            document.getElementById('filtroCategoriaEntrada').value = '';
+            document.getElementById('filtroUsuarioEntrada').value = '';
+            actualizarTablaEntradas();
+        }
+
+        // Funciones para salidas
+        function agregarSalida() {
+            if (!usuarioActual) {
+                mostrarToast('Error', 'Debe iniciar sesión primero', 'error');
+                return;
+            }
+            
+            const descripcion = document.getElementById('descripcionSalida').value.trim();
+            const categoria = document.getElementById('categoriaSalida').value;
+            const monto = parseFloat(document.getElementById('montoSalida').value);
+            const fecha = document.getElementById('fechaSalida').value;
+            
+            if (!descripcion || !categoria || isNaN(monto) || monto <= 0 || !fecha) {
+                mostrarToast('Error', 'Por favor complete todos los campos correctamente', 'error');
+                return;
+            }
+            
+            const nuevaSalida = {
+                id: Date.now(),
+                descripcion,
+                categoria,
+                monto,
+                fecha: new Date(fecha + 'T00:00:00').toLocaleDateString('sv-SE'), // yyyy-mm-dd
+                usuario: usuarioActual.username,
+                fechaRegistro: new Date().toLocaleString()
+            };
+            
+            salidas.push(nuevaSalida);
+            
+            if (!guardarDatos()) {
+                salidas.pop(); // Revertir si no se pudo guardar
+                return;
+            }
+            
+            actualizarTablaSalidas();
+            actualizarResumen();
+            
+            // Limpiar formulario
+            document.getElementById('descripcionSalida').value = '';
+            document.getElementById('montoSalida').value = '';
+            document.getElementById('descripcionSalida').focus();
+            
+            mostrarToast('Éxito', 'Salida agregada correctamente');
+        }
+
+        function actualizarTablaSalidas() {
+            const tbody = document.querySelector('#tablaSalidas tbody');
+            tbody.innerHTML = '';
+            
+            let total = 0;
+            const fechaDesde = document.getElementById('filtroFechaDesdeSalida').value;
+            const fechaHasta = document.getElementById('filtroFechaHastaSalida').value;
+            const categoriaFiltro = document.getElementById('filtroCategoriaSalida').value;
+            const usuarioFiltro = document.getElementById('filtroUsuarioSalida').value;
+            
+            let salidasFiltradas = [...salidas]; // Copia del array original
+            
+            // Filtrar por rango de fechas
+            if (fechaDesde) {
+                salidasFiltradas = salidasFiltradas.filter(s => s.fecha >= fechaDesde);
+            }
+            
+            if (fechaHasta) {
+                salidasFiltradas = salidasFiltradas.filter(s => s.fecha <= fechaHasta);
+            }
+            
+            if (categoriaFiltro) {
+                salidasFiltradas = salidasFiltradas.filter(s => s.categoria === categoriaFiltro);
+            }
+            
+            if (usuarioFiltro) {
+                salidasFiltradas = salidasFiltradas.filter(s => s.usuario === usuarioFiltro);
+            }
+            
+            salidasFiltradas.forEach(salida => {
+                total += salida.monto;
+                
+                const usuario = usuarios.find(u => u.username === salida.usuario);
+                const nombreUsuario = usuario ? usuario.nombre : salida.usuario;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${salida.descripcion}</td>
+                    <td><span class="badge bg-danger category-badge">${salida.categoria}</span></td>
+                    <td>${configuracion.moneda}${salida.monto.toFixed(2)}</td>
+                    <td>${formatearFecha(salida.fecha)}</td>
+                    <td>${nombreUsuario}</td>
+                    <td class="no-print">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editarMovimiento(${salida.id}, 'salida')">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarSalida(${salida.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('totalSalidas').textContent = total.toFixed(2);
+        }
+
+        function eliminarSalida(id) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden eliminar salidas', 'error');
+                return;
+            }
+            
+            if (confirm('¿Está seguro que desea eliminar esta salida?')) {
+                const index = salidas.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    const salidaEliminada = salidas.splice(index, 1)[0];
+                    
+                    if (!guardarDatos()) {
+                        salidas.splice(index, 0, salidaEliminada); // Revertir si no se pudo guardar
+                        return;
+                    }
+                    
+                    actualizarTablaSalidas();
+                    actualizarResumen();
+                    mostrarToast('Éxito', 'Salida eliminada correctamente');
+                }
+            }
+        }
+
+        function limpiarFiltroSalidas() {
+            document.getElementById('filtroFechaDesdeSalida').value = '';
+            document.getElementById('filtroFechaHastaSalida').value = '';
+            document.getElementById('filtroCategoriaSalida').value = '';
+            document.getElementById('filtroUsuarioSalida').value = '';
+            actualizarTablaSalidas();
+        }
+
+        // Funciones para bancos
+        function agregarMovimientoBanco() {
+            if (!usuarioActual) {
+                mostrarToast('Error', 'Debe iniciar sesión primero', 'error');
+                return;
+            }
+            
+            const tipo = document.getElementById('tipoMovimientoBanco').value;
+            const cuentaId = parseInt(document.getElementById('cuentaBanco').value);
+            const descripcion = document.getElementById('descripcionBanco').value.trim();
+            const categoria = document.getElementById('categoriaBanco').value;
+            const monto = parseFloat(document.getElementById('montoBanco').value);
+            const fecha = document.getElementById('fechaBanco').value;
+            const referencia = document.getElementById('referenciaBanco').value.trim();
+            
+            if (!tipo || !cuentaId || !descripcion || !categoria || isNaN(monto) || monto <= 0 || !fecha) {
+                mostrarToast('Error', 'Por favor complete todos los campos obligatorios correctamente', 'error');
+                return;
+            }
+            
+            const cuenta = cuentasBancarias.find(c => c.id === cuentaId);
+            if (!cuenta) {
+                mostrarToast('Error', 'Cuenta bancaria no encontrada', 'error');
+                return;
+            }
+            
+            // Actualizar saldo de la cuenta
+            if (tipo === 'ingreso') {
+                cuenta.saldo += monto;
+            } else {
+                if (cuenta.saldo < monto) {
+                    mostrarToast('Error', 'Saldo insuficiente en la cuenta bancaria', 'error');
+                    return;
+                }
+                cuenta.saldo -= monto;
+            }
+            
+            const nuevoMovimiento = {
+                id: Date.now(),
+                tipo,
+                cuentaId,
+                cuentaNombre: `${cuenta.nombreBanco} - ${cuenta.numeroCuenta}`,
+                descripcion,
+                categoria,
+                monto,
+                fecha: new Date(fecha + 'T00:00:00').toLocaleDateString('sv-SE'), // yyyy-mm-dd
+                referencia,
+                usuario: usuarioActual.username,
+                fechaRegistro: new Date().toLocaleString()
+            };
+            
+            movimientosBancarios.push(nuevoMovimiento);
+            
+            if (!guardarDatos()) {
+                // Revertir cambios si no se pudo guardar
+                movimientosBancarios.pop();
+                if (tipo === 'ingreso') {
+                    cuenta.saldo -= monto;
+                } else {
+                    cuenta.saldo += monto;
+                }
+                return;
+            }
+            
+            actualizarTablaMovimientosBancarios();
+            actualizarTablaCuentasBancarias();
+            actualizarResumen();
+            
+            // Limpiar formulario
+            document.getElementById('tipoMovimientoBanco').value = '';
+            document.getElementById('descripcionBanco').value = '';
+            document.getElementById('montoBanco').value = '';
+            document.getElementById('referenciaBanco').value = '';
+            document.getElementById('tipoMovimientoBanco').focus();
+            
+            mostrarToast('Éxito', 'Movimiento bancario registrado correctamente');
+        }
+
+        function actualizarTablaMovimientosBancarios() {
+            const tbody = document.querySelector('#tablaBancos tbody');
+            tbody.innerHTML = '';
+            
+            let totalIngresos = 0;
+            let totalEgresos = 0;
+            
+            const fechaDesde = document.getElementById('filtroFechaDesdeBanco').value;
+            const fechaHasta = document.getElementById('filtroFechaHastaBanco').value;
+            const tipoFiltro = document.getElementById('filtroTipoBanco').value;
+            const cuentaFiltro = document.getElementById('filtroCuentaBanco').value;
+            const categoriaFiltro = document.getElementById('filtroCategoriaBanco').value;
+            
+            let movimientosFiltrados = [...movimientosBancarios];
+            
+            // Filtrar por rango de fechas
+            if (fechaDesde) {
+                movimientosFiltrados = movimientosFiltrados.filter(m => m.fecha >= fechaDesde);
+            }
+            
+            if (fechaHasta) {
+                movimientosFiltrados = movimientosFiltrados.filter(m => m.fecha <= fechaHasta);
+            }
+            
+            // Filtrar por tipo
+            if (tipoFiltro) {
+                movimientosFiltrados = movimientosFiltrados.filter(m => m.tipo === tipoFiltro);
+            }
+            
+            // Filtrar por cuenta
+            if (cuentaFiltro) {
+                movimientosFiltrados = movimientosFiltrados.filter(m => m.cuentaId === parseInt(cuentaFiltro));
+            }
+            
+            // Filtrar por categoría
+            if (categoriaFiltro) {
+                movimientosFiltrados = movimientosFiltrados.filter(m => m.categoria === categoriaFiltro);
+            }
+            
+            movimientosFiltrados.forEach(movimiento => {
+                if (movimiento.tipo === 'ingreso') {
+                    totalIngresos += movimiento.monto;
+                } else {
+                    totalEgresos += movimiento.monto;
+                }
+                
+                const usuario = usuarios.find(u => u.username === movimiento.usuario);
+                const nombreUsuario = usuario ? usuario.nombre : movimiento.usuario;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <span class="badge ${movimiento.tipo === 'ingreso' ? 'bg-success' : 'bg-danger'}">
+                            ${movimiento.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
+                        </span>
+                    </td>
+                    <td>${movimiento.cuentaNombre}</td>
+                    <td>${movimiento.descripcion}</td>
+                    <td><span class="badge bg-info category-badge">${movimiento.categoria}</span></td>
+                    <td>${configuracion.moneda}${movimiento.monto.toFixed(2)}</td>
+                    <td>${formatearFecha(movimiento.fecha)}</td>
+                    <td>${movimiento.referencia || 'N/A'}</td>
+                    <td>${nombreUsuario}</td>
+                    <td class="no-print">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editarMovimientoBanco(${movimiento.id})">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarMovimientoBanco(${movimiento.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('totalIngresosBanco').textContent = totalIngresos.toFixed(2);
+            document.getElementById('totalEgresosBanco').textContent = totalEgresos.toFixed(2);
+            document.getElementById('saldoTotalBancos').textContent = (totalIngresos - totalEgresos).toFixed(2);
+        }
+
+        function editarMovimientoBanco(id) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden editar movimientos bancarios', 'error');
+                return;
+            }
+            
+            const movimiento = movimientosBancarios.find(m => m.id === id);
+            if (!movimiento) return;
+            
+            document.getElementById('editarIdMovimientoBanco').value = id;
+            document.getElementById('editarTipoMovimientoBanco').value = movimiento.tipo;
+            document.getElementById('editarDescripcionBanco').value = movimiento.descripcion;
+            document.getElementById('editarMontoBanco').value = movimiento.monto;
+            document.getElementById('editarFechaBanco').value = movimiento.fecha;
+            document.getElementById('editarReferenciaBanco').value = movimiento.referencia || '';
+            
+            // Llenar select de cuentas
+            const selectCuenta = document.getElementById('editarCuentaBanco');
+            selectCuenta.innerHTML = '';
+            cuentasBancarias.forEach(cuenta => {
+                const option = document.createElement('option');
+                option.value = cuenta.id;
+                option.textContent = `${cuenta.nombreBanco} - ${cuenta.numeroCuenta}`;
+                if (cuenta.id === movimiento.cuentaId) option.selected = true;
+                selectCuenta.appendChild(option);
+            });
+            
+            // Llenar select de categorías
+            const selectCategoria = document.getElementById('editarCategoriaBanco');
+            selectCategoria.innerHTML = '';
+            categoriasBanco.forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria;
+                option.textContent = categoria;
+                if (categoria === movimiento.categoria) option.selected = true;
+                selectCategoria.appendChild(option);
+            });
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarMovimientoBanco'));
+            modal.show();
+        }
+
+        function guardarEdicionMovimientoBanco() {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden editar movimientos bancarios', 'error');
+                return;
+            }
+            
+            const id = parseInt(document.getElementById('editarIdMovimientoBanco').value);
+            const tipo = document.getElementById('editarTipoMovimientoBanco').value;
+            const cuentaId = parseInt(document.getElementById('editarCuentaBanco').value);
+            const descripcion = document.getElementById('editarDescripcionBanco').value.trim();
+            const categoria = document.getElementById('editarCategoriaBanco').value;
+            const monto = parseFloat(document.getElementById('editarMontoBanco').value);
+            const fecha = document.getElementById('editarFechaBanco').value;
+            const referencia = document.getElementById('editarReferenciaBanco').value.trim();
+            
+            if (!tipo || !cuentaId || !descripcion || !categoria || isNaN(monto) || monto <= 0 || !fecha) {
+                mostrarToast('Error', 'Por favor complete todos los campos obligatorios correctamente', 'error');
+                return;
+            }
+            
+            const movimientoIndex = movimientosBancarios.findIndex(m => m.id === id);
+            if (movimientoIndex === -1) return;
+            
+            const movimiento = movimientosBancarios[movimientoIndex];
+            const cuentaOriginal = cuentasBancarias.find(c => c.id === movimiento.cuentaId);
+            const cuentaNueva = cuentasBancarias.find(c => c.id === cuentaId);
+            
+            if (!cuentaOriginal || !cuentaNueva) {
+                mostrarToast('Error', 'Cuenta bancaria no encontrada', 'error');
+                return;
+            }
+            
+            // Revertir el movimiento original en la cuenta original
+            if (movimiento.tipo === 'ingreso') {
+                cuentaOriginal.saldo -= movimiento.monto;
+            } else {
+                cuentaOriginal.saldo += movimiento.monto;
+            }
+            
+            // Aplicar el nuevo movimiento en la cuenta nueva
+            if (tipo === 'ingreso') {
+                cuentaNueva.saldo += monto;
+            } else {
+                if (cuentaNueva.saldo < monto) {
+                    mostrarToast('Error', 'Saldo insuficiente en la cuenta bancaria', 'error');
+                    // Revertir cambios en cuenta original
+                    if (movimiento.tipo === 'ingreso') {
+                        cuentaOriginal.saldo += movimiento.monto;
+                    } else {
+                        cuentaOriginal.saldo -= movimiento.monto;
+                    }
+                    return;
+                }
+                cuentaNueva.saldo -= monto;
+            }
+            
+            // Actualizar el movimiento
+            movimientosBancarios[movimientoIndex] = {
+                ...movimiento,
+                tipo,
+                cuentaId,
+                cuentaNombre: `${cuentaNueva.nombreBanco} - ${cuentaNueva.numeroCuenta}`,
+                descripcion,
+                categoria,
+                monto,
+                fecha: new Date(fecha + 'T00:00:00').toLocaleDateString('sv-SE'),
+                referencia
+            };
+            
+            if (!guardarDatos()) {
+                // Revertir todos los cambios si no se pudo guardar
+                movimientosBancarios[movimientoIndex] = movimiento;
+                if (movimiento.tipo === 'ingreso') {
+                    cuentaOriginal.saldo += movimiento.monto;
+                } else {
+                    cuentaOriginal.saldo -= movimiento.monto;
+                }
+                if (tipo === 'ingreso') {
+                    cuentaNueva.saldo -= monto;
+                } else {
+                    cuentaNueva.saldo += monto;
+                }
+                return;
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarMovimientoBanco')).hide();
+            
+            actualizarTablaMovimientosBancarios();
+            actualizarTablaCuentasBancarias();
+            actualizarResumen();
+            
+            mostrarToast('Éxito', 'Movimiento bancario actualizado correctamente');
+        }
+
+        function eliminarMovimientoBanco(id) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden eliminar movimientos bancarios', 'error');
+                return;
+            }
+            
+            if (confirm('¿Está seguro que desea eliminar este movimiento bancario?')) {
+                const index = movimientosBancarios.findIndex(m => m.id === id);
+                if (index !== -1) {
+                    const movimiento = movimientosBancarios[index];
+                    const cuenta = cuentasBancarias.find(c => c.id === movimiento.cuentaId);
+                    
+                    if (cuenta) {
+                        // Revertir el movimiento en el saldo de la cuenta
+                        if (movimiento.tipo === 'ingreso') {
+                            cuenta.saldo -= movimiento.monto;
+                        } else {
+                            cuenta.saldo += movimiento.monto;
+                        }
+                    }
+                    
+                    const movimientoEliminado = movimientosBancarios.splice(index, 1)[0];
+                    
+                    if (!guardarDatos()) {
+                        // Revertir cambios si no se pudo guardar
+                        movimientosBancarios.splice(index, 0, movimientoEliminado);
+                        if (cuenta) {
+                            if (movimiento.tipo === 'ingreso') {
+                                cuenta.saldo += movimiento.monto;
+                            } else {
+                                cuenta.saldo -= movimiento.monto;
+                            }
+                        }
+                        return;
+                    }
+                    
+                    actualizarTablaMovimientosBancarios();
+                    actualizarTablaCuentasBancarias();
+                    actualizarResumen();
+                    mostrarToast('Éxito', 'Movimiento bancario eliminado correctamente');
+                }
+            }
+        }
+
+        function limpiarFiltroBancos() {
+            document.getElementById('filtroFechaDesdeBanco').value = '';
+            document.getElementById('filtroFechaHastaBanco').value = '';
+            document.getElementById('filtroTipoBanco').value = '';
+            document.getElementById('filtroCuentaBanco').value = '';
+            document.getElementById('filtroCategoriaBanco').value = '';
+            actualizarTablaMovimientosBancarios();
+        }
+
+        function agregarCuentaBanco() {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden agregar cuentas bancarias', 'error');
+                return;
+            }
+            
+            const nombreBanco = document.getElementById('nombreBanco').value.trim();
+            const numeroCuenta = document.getElementById('numeroCuenta').value.trim();
+            const tipoCuenta = document.getElementById('tipoCuenta').value;
+            const saldoInicial = parseFloat(document.getElementById('saldoInicialBanco').value) || 0;
+            
+            if (!nombreBanco || !numeroCuenta || !tipoCuenta) {
+                mostrarToast('Error', 'Por favor complete todos los campos obligatorios', 'error');
+                return;
+            }
+            
+            // Verificar si ya existe una cuenta con este número
+            if (cuentasBancarias.some(c => c.numeroCuenta === numeroCuenta)) {
+                mostrarToast('Error', 'Ya existe una cuenta con este número', 'error');
+                return;
+            }
+            
+            const nuevaCuenta = {
+                id: Date.now(),
+                nombreBanco,
+                numeroCuenta,
+                tipoCuenta,
+                saldo: saldoInicial
+            };
+            
+            cuentasBancarias.push(nuevaCuenta);
+            
+            if (!guardarDatos()) {
+                cuentasBancarias.pop(); // Revertir si no se pudo guardar
+                return;
+            }
+            
+            actualizarTablaCuentasBancarias();
+            actualizarSelectCuentasBancarias();
+            
+            // Limpiar formulario
+            document.getElementById('nombreBanco').value = '';
+            document.getElementById('numeroCuenta').value = '';
+            document.getElementById('tipoCuenta').value = '';
+            document.getElementById('saldoInicialBanco').value = '0';
+            
+            mostrarToast('Éxito', 'Cuenta bancaria agregada correctamente');
+        }
+
+        function actualizarTablaCuentasBancarias() {
+            const tbody = document.querySelector('#tablaCuentasBancarias tbody');
+            tbody.innerHTML = '';
+            
+            cuentasBancarias.forEach(cuenta => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${cuenta.nombreBanco}</td>
+                    <td>${cuenta.numeroCuenta}</td>
+                    <td>${cuenta.tipoCuenta}</td>
+                    <td>${configuracion.moneda}${cuenta.saldo.toFixed(2)}</td>
+                    <td class="no-print">
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarCuentaBanco(${cuenta.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function actualizarSelectCuentasBancarias() {
+            const selectCuenta = document.getElementById('cuentaBanco');
+            const selectFiltroCuenta = document.getElementById('filtroCuentaBanco');
+            const selectEditarCuenta = document.getElementById('editarCuentaBanco');
+            
+            // Limpiar selects
+            selectCuenta.innerHTML = '<option value="">Seleccione...</option>';
+            selectFiltroCuenta.innerHTML = '<option value="">Todas las cuentas</option>';
+            if (selectEditarCuenta) selectEditarCuenta.innerHTML = '';
+            
+            // Llenar con cuentas
+            cuentasBancarias.forEach(cuenta => {
+                const option = document.createElement('option');
+                option.value = cuenta.id;
+                option.textContent = `${cuenta.nombreBanco} - ${cuenta.numeroCuenta}`;
+                selectCuenta.appendChild(option.cloneNode(true));
+                selectFiltroCuenta.appendChild(option.cloneNode(true));
+                if (selectEditarCuenta) selectEditarCuenta.appendChild(option.cloneNode(true));
+            });
+        }
+
+        function eliminarCuentaBanco(id) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden eliminar cuentas bancarias', 'error');
+                return;
+            }
+            
+            // Verificar si hay movimientos asociados a esta cuenta
+            const tieneMovimientos = movimientosBancarios.some(m => m.cuentaId === id);
+            if (tieneMovimientos) {
+                mostrarToast('Error', 'No se puede eliminar una cuenta que tiene movimientos asociados', 'error');
+                return;
+            }
+            
+            if (confirm('¿Está seguro que desea eliminar esta cuenta bancaria?')) {
+                const index = cuentasBancarias.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    const cuentaEliminada = cuentasBancarias.splice(index, 1)[0];
+                    
+                    if (!guardarDatos()) {
+                        cuentasBancarias.splice(index, 0, cuentaEliminada); // Revertir si no se pudo guardar
+                        return;
+                    }
+                    
+                    actualizarTablaCuentasBancarias();
+                    actualizarSelectCuentasBancarias();
+                    mostrarToast('Éxito', 'Cuenta bancaria eliminada correctamente');
+                }
+            }
+        }
+
+        // Funciones para categorías
+        function agregarCategoria(tipo) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden agregar categorías', 'error');
+                return;
+            }
+            
+            const inputId = tipo === 'entrada' ? 'nuevaCategoriaEntrada' : 'nuevaCategoriaSalida';
+            const nombre = document.getElementById(inputId).value.trim();
+            
+            if (!nombre) {
+                mostrarToast('Error', 'Por favor ingrese un nombre para la categoría', 'error');
+                return;
+            }
+            
+            if (tipo === 'entrada') {
+                if (categoriasEntrada.includes(nombre)) {
+                    mostrarToast('Error', 'Esta categoría ya existe', 'error');
+                    return;
+                }
+                categoriasEntrada.push(nombre);
+            } else {
+                if (categoriasSalida.includes(nombre)) {
+                    mostrarToast('Error', 'Esta categoría ya existe', 'error');
+                    return;
+                }
+                categoriasSalida.push(nombre);
+            }
+            
+            if (!guardarDatos()) {
+                // Revertir cambios si no se pudo guardar
+                if (tipo === 'entrada') {
+                    categoriasEntrada.pop();
+                } else {
+                    categoriasSalida.pop();
+                }
+                return;
+            }
+            
+            actualizarSelectCategorias();
+            document.getElementById(inputId).value = '';
+            mostrarToast('Éxito', 'Categoría agregada correctamente');
+        }
+
+        function actualizarSelectCategorias() {
+            // Actualizar selects de categorías en formularios
+            const selectEntrada = document.getElementById('categoriaEntrada');
+            const selectSalida = document.getElementById('categoriaSalida');
+            const selectBanco = document.getElementById('categoriaBanco');
+            const selectFiltroEntrada = document.getElementById('filtroCategoriaEntrada');
+            const selectFiltroSalida = document.getElementById('filtroCategoriaSalida');
+            const selectFiltroBanco = document.getElementById('filtroCategoriaBanco');
+            const selectFiltroResumen = document.getElementById('filtroCategoriaResumen');
+            
+            // Limpiar selects
+            selectEntrada.innerHTML = '<option value="">Seleccione...</option>';
+            selectSalida.innerHTML = '<option value="">Seleccione...</option>';
+            selectBanco.innerHTML = '<option value="">Seleccione...</option>';
+            selectFiltroEntrada.innerHTML = '<option value="">Todas las categorías</option>';
+            selectFiltroSalida.innerHTML = '<option value="">Todas las categorías</option>';
+            selectFiltroBanco.innerHTML = '<option value="">Todas las categorías</option>';
+            selectFiltroResumen.innerHTML = '<option value="">Todas las categorías</option>';
+            
+            // Llenar categorías de entrada
+            categoriasEntrada.forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria;
+                option.textContent = categoria;
+                selectEntrada.appendChild(option.cloneNode(true));
+                selectFiltroEntrada.appendChild(option.cloneNode(true));
+                selectFiltroResumen.appendChild(option.cloneNode(true));
+            });
+            
+            // Llenar categorías de salida
+            categoriasSalida.forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria;
+                option.textContent = categoria;
+                selectSalida.appendChild(option.cloneNode(true));
+                selectFiltroSalida.appendChild(option.cloneNode(true));
+                selectFiltroResumen.appendChild(option.cloneNode(true));
+            });
+            
+            // Llenar categorías de banco
+            categoriasBanco.forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria;
+                option.textContent = categoria;
+                selectBanco.appendChild(option.cloneNode(true));
+                selectFiltroBanco.appendChild(option.cloneNode(true));
+                selectFiltroResumen.appendChild(option.cloneNode(true));
+            });
+            
+            // Actualizar listas en pestaña de categorías
+            const listaEntrada = document.getElementById('listaCategoriasEntrada');
+            const listaSalida = document.getElementById('listaCategoriasSalida');
+            
+            listaEntrada.innerHTML = '';
+            listaSalida.innerHTML = '';
+            
+            categoriasEntrada.forEach((categoria, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    ${categoria}
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarCategoria('entrada', ${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                `;
+                listaEntrada.appendChild(li);
+            });
+            
+            categoriasSalida.forEach((categoria, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    ${categoria}
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarCategoria('salida', ${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                `;
+                listaSalida.appendChild(li);
+            });
+        }
+
+        function eliminarCategoria(tipo, index) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden eliminar categorías', 'error');
+                return;
+            }
+            
+            if (confirm('¿Está seguro que desea eliminar esta categoría? Esto no afectará los movimientos ya registrados.')) {
+                let categoriaEliminada;
+                if (tipo === 'entrada') {
+                    categoriaEliminada = categoriasEntrada.splice(index, 1)[0];
+                } else {
+                    categoriaEliminada = categoriasSalida.splice(index, 1)[0];
+                }
+                
+                if (!guardarDatos()) {
+                    // Revertir cambios si no se pudo guardar
+                    if (tipo === 'entrada') {
+                        categoriasEntrada.splice(index, 0, categoriaEliminada);
+                    } else {
+                        categoriasSalida.splice(index, 0, categoriaEliminada);
+                    }
+                    return;
+                }
+                
+                actualizarSelectCategorias();
+                mostrarToast('Éxito', 'Categoría eliminada correctamente');
+            }
+        }
+
+        // Funciones para usuarios
+        function agregarUsuario() {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden agregar usuarios', 'error');
+                return;
+            }
+            
+            const nombre = document.getElementById('nuevoUsuarioNombre').value.trim();
+            const username = document.getElementById('nuevoUsuarioUsername').value.trim();
+            const password = document.getElementById('nuevoUsuarioPassword').value;
+            const rol = document.getElementById('nuevoUsuarioRol').value;
+            
+            if (!nombre || !username || !password) {
+                mostrarToast('Error', 'Por favor complete todos los campos', 'error');
+                return;
+            }
+            
+            if (usuarios.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                mostrarToast('Error', 'El nombre de usuario ya existe', 'error');
+                return;
+            }
+            
+            const nuevoUsuario = {
+                id: Date.now(),
+                nombre,
+                username,
+                password,
+                rol,
+                activo: true
+            };
+            
+            usuarios.push(nuevoUsuario);
+            
+            if (!guardarDatos()) {
+                usuarios.pop(); // Revertir si no se pudo guardar
+                return;
+            }
+            
+            actualizarTablaUsuarios();
+            actualizarSelectUsuarios();
+            
+            // Limpiar formulario
+            document.getElementById('nuevoUsuarioNombre').value = '';
+            document.getElementById('nuevoUsuarioUsername').value = '';
+            document.getElementById('nuevoUsuarioPassword').value = '';
+            
+            mostrarToast('Éxito', 'Usuario agregado correctamente');
+        }
+
+        function actualizarTablaUsuarios() {
+            const tbody = document.querySelector('#tablaUsuarios tbody');
+            tbody.innerHTML = '';
+            
+            usuarios.forEach(usuario => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${usuario.nombre}</td>
+                    <td>${usuario.username}</td>
+                    <td><span class="badge ${usuario.rol === 'admin' ? 'bg-danger' : 'bg-primary'}">${usuario.rol}</span></td>
+                    <td class="no-print">
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarUsuario(${usuario.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function actualizarSelectUsuarios() {
+            const selectFiltroEntrada = document.getElementById('filtroUsuarioEntrada');
+            const selectFiltroSalida = document.getElementById('filtroUsuarioSalida');
+            const selectFiltroResumen = document.getElementById('filtroUsuarioResumen');
+            
+            // Limpiar selects
+            selectFiltroEntrada.innerHTML = '<option value="">Todos los usuarios</option>';
+            selectFiltroSalida.innerHTML = '<option value="">Todos los usuarios</option>';
+            selectFiltroResumen.innerHTML = '<option value="">Todos los usuarios</option>';
+            
+            // Llenar con usuarios
+            usuarios.forEach(usuario => {
+                const option = document.createElement('option');
+                option.value = usuario.username;
+                option.textContent = usuario.nombre;
+                selectFiltroEntrada.appendChild(option.cloneNode(true));
+                selectFiltroSalida.appendChild(option.cloneNode(true));
+                selectFiltroResumen.appendChild(option.cloneNode(true));
+            });
+        }
+
+        function eliminarUsuario(id) {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden eliminar usuarios', 'error');
+                return;
+            }
+            
+            if (id === usuarioActual.id) {
+                mostrarToast('Error', 'No puede eliminarse a sí mismo', 'error');
+                return;
+            }
+            
+            if (confirm('¿Está seguro que desea eliminar este usuario?')) {
+                const index = usuarios.findIndex(u => u.id === id);
+                if (index !== -1) {
+                    const usuarioEliminado = usuarios.splice(index, 1)[0];
+                    
+                    if (!guardarDatos()) {
+                        usuarios.splice(index, 0, usuarioEliminado); // Revertir si no se pudo guardar
+                        return;
+                    }
+                    
+                    actualizarTablaUsuarios();
+                    actualizarSelectUsuarios();
+                    mostrarToast('Éxito', 'Usuario eliminado correctamente');
+                }
+            }
+        }
+
+        // Funciones para resumen
+        function actualizarResumen() {
+            const fechaDesde = document.getElementById('filtroFechaDesdeResumen').value;
+            const fechaHasta = document.getElementById('filtroFechaHastaResumen').value;
+            const tipoMovimiento = document.getElementById('tipoMovimientoResumen').value;
+            const categoriaFiltro = document.getElementById('filtroCategoriaResumen').value;
+            const usuarioFiltro = document.getElementById('filtroUsuarioResumen').value;
+
+            // Filtrar entradas, salidas y movimientos bancarios
+            let entradasFiltradas = [...entradas];
+            let salidasFiltradas = [...salidas];
+            let movimientosBancariosFiltrados = [...movimientosBancarios];
+
+            // Filtrar por rango de fechas
+            if (fechaDesde) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.fecha >= fechaDesde);
+                salidasFiltradas = salidasFiltradas.filter(s => s.fecha >= fechaDesde);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.fecha >= fechaDesde);
+            }
+
+            if (fechaHasta) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.fecha <= fechaHasta);
+                salidasFiltradas = salidasFiltradas.filter(s => s.fecha <= fechaHasta);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.fecha <= fechaHasta);
+            }
+
+            if (categoriaFiltro) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.categoria === categoriaFiltro);
+                salidasFiltradas = salidasFiltradas.filter(s => s.categoria === categoriaFiltro);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.categoria === categoriaFiltro);
+            }
+
+            if (usuarioFiltro) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.usuario === usuarioFiltro);
+                salidasFiltradas = salidasFiltradas.filter(s => s.usuario === usuarioFiltro);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.usuario === usuarioFiltro);
+            }
+
+            // Calcular totales según el filtro
+            let totalEntradas = 0;
+            let totalSalidas = 0;
+            let totalBancos = 0;
+
+            if (tipoMovimiento === 'Todos' || tipoMovimiento === 'Entradas') {
+                totalEntradas = entradasFiltradas.reduce((acc, e) => acc + e.monto, 0);
+            }
+            
+            if (tipoMovimiento === 'Todos' || tipoMovimiento === 'Salidas') {
+                totalSalidas = salidasFiltradas.reduce((acc, s) => acc + s.monto, 0);
+            }
+            
+            if (tipoMovimiento === 'Todos' || tipoMovimiento === 'Bancos') {
+                totalBancos = movimientosBancariosFiltrados
+                    .filter(m => m.tipo === 'ingreso')
+                    .reduce((acc, m) => acc + m.monto, 0);
+                
+                totalBancos -= movimientosBancariosFiltrados
+                    .filter(m => m.tipo === 'egreso')
+                    .reduce((acc, m) => acc + m.monto, 0);
+            }
+
+            const saldo = totalEntradas - totalSalidas + totalBancos;
+
+            // Actualizar UI
+            document.getElementById('resumenEntradas').textContent = `${configuracion.moneda}${totalEntradas.toFixed(2)}`;
+            document.getElementById('resumenSalidas').textContent = `${configuracion.moneda}${totalSalidas.toFixed(2)}`;
+            document.getElementById('resumenBancos').textContent = `${configuracion.moneda}${totalBancos.toFixed(2)}`;
+            document.getElementById('resumenSaldo').textContent = `${configuracion.moneda}${saldo.toFixed(2)}`;
+        }
+
+        function generarReporteImpresion() {
+            // Obtener valores actuales de los filtros directamente de los inputs
+            const filtros = {
+                fechaDesde: document.getElementById('filtroFechaDesdeResumen').value,
+                fechaHasta: document.getElementById('filtroFechaHastaResumen').value,
+                tipoMovimiento: document.getElementById('tipoMovimientoResumen').value,
+                categoria: document.getElementById('filtroCategoriaResumen').value,
+                usuario: document.getElementById('filtroUsuarioResumen').value
+            };
+
+            // Filtrar los datos según los criterios actuales
+            let entradasFiltradas = [...entradas];
+            let salidasFiltradas = [...salidas];
+            let movimientosBancariosFiltrados = [...movimientosBancarios];
+
+            // Aplicar filtros de fecha
+            if (filtros.fechaDesde) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.fecha >= filtros.fechaDesde);
+                salidasFiltradas = salidasFiltradas.filter(s => s.fecha >= filtros.fechaDesde);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.fecha >= filtros.fechaDesde);
+            }
+            
+            if (filtros.fechaHasta) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.fecha <= filtros.fechaHasta);
+                salidasFiltradas = salidasFiltradas.filter(s => s.fecha <= filtros.fechaHasta);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.fecha <= filtros.fechaHasta);
+            }
+            
+            // Aplicar filtro de categoría
+            if (filtros.categoria) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.categoria === filtros.categoria);
+                salidasFiltradas = salidasFiltradas.filter(s => s.categoria === filtros.categoria);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.categoria === filtros.categoria);
+            }
+            
+            // Aplicar filtro de usuario
+            if (filtros.usuario) {
+                entradasFiltradas = entradasFiltradas.filter(e => e.usuario === filtros.usuario);
+                salidasFiltradas = salidasFiltradas.filter(s => s.usuario === filtros.usuario);
+                movimientosBancariosFiltrados = movimientosBancariosFiltrados.filter(m => m.usuario === filtros.usuario);
+            }
+
+            // Determinar qué secciones mostrar
+            const mostrarEntradas = filtros.tipoMovimiento === 'Todos' || filtros.tipoMovimiento === 'Entradas';
+            const mostrarSalidas = filtros.tipoMovimiento === 'Todos' || filtros.tipoMovimiento === 'Salidas';
+            const mostrarBancos = filtros.tipoMovimiento === 'Todos' || filtros.tipoMovimiento === 'Bancos';
+
+            // Calcular totales
+            const totalEntradas = mostrarEntradas ? 
+                entradasFiltradas.reduce((acc, e) => acc + e.monto, 0) : 0;
+            
+            const totalSalidas = mostrarSalidas ? 
+                salidasFiltradas.reduce((acc, s) => acc + s.monto, 0) : 0;
+            
+            let totalIngresosBancos = 0;
+            let totalEgresosBancos = 0;
+            
+            if (mostrarBancos) {
+                totalIngresosBancos = movimientosBancariosFiltrados
+                    .filter(m => m.tipo === 'ingreso')
+                    .reduce((acc, m) => acc + m.monto, 0);
+                
+                totalEgresosBancos = movimientosBancariosFiltrados
+                    .filter(m => m.tipo === 'egreso')
+                    .reduce((acc, m) => acc + m.monto, 0);
+            }
+            
+            const saldoBancos = totalIngresosBancos - totalEgresosBancos;
+            const saldoTotal = totalEntradas - totalSalidas + saldoBancos;
+
+            // Construir el contenido HTML del reporte
+            let contenidoHTML = `
+                <div style="padding: 20px; font-family: Arial, sans-serif;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="color: #2c3e50;">${configuracion.nombreEmpresa || 'Empresa'}</h1>
+                        <h2 style="color: #2c3e50;">Reporte de Movimientos</h2>
+                        <div style="margin-bottom: 15px; text-align: left;">
+                            <p><strong>Período:</strong> ${filtros.fechaDesde ? formatearFecha(filtros.fechaDesde) : 'Inicio'} - ${filtros.fechaHasta ? formatearFecha(filtros.fechaHasta) : 'Fin'}</p>
+                            <p><strong>Tipo de movimiento:</strong> ${filtros.tipoMovimiento}</p>
+                            ${filtros.categoria ? `<p><strong>Categoría:</strong> ${filtros.categoria}</p>` : ''}
+                            ${filtros.usuario ? `<p><strong>Usuario:</strong> ${usuarios.find(u => u.username === filtros.usuario)?.nombre || filtros.usuario}</p>` : ''}
+                            <p><strong>Fecha de generación:</strong> ${new Date().toLocaleString()}</p>
+                        </div>
+                    </div>
+            `;
+
+            // Sección de entradas si corresponde
+            if (mostrarEntradas && entradasFiltradas.length > 0) {
+                contenidoHTML += `
+                    <div>
+                        <h3 style="color: #27ae60; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Entradas</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Descripción</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Categoría</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Monto</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Fecha</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${entradasFiltradas.map(e => `
+                                    <tr>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${e.descripcion}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${e.categoria}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${configuracion.moneda}${e.monto.toFixed(2)}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${formatearFecha(e.fecha)}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${usuarios.find(u => u.username === e.usuario)?.nombre || e.usuario}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <p style="font-weight: bold; text-align: right;">Total Entradas: ${configuracion.moneda}${totalEntradas.toFixed(2)}</p>
+                    </div>
+                `;
+            }
+            
+            // Sección de salidas si corresponde
+            if (mostrarSalidas && salidasFiltradas.length > 0) {
+                contenidoHTML += `
+                    <div>
+                        <h3 style="color: #e74c3c; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Salidas</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Descripción</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Categoría</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Monto</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Fecha</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${salidasFiltradas.map(s => `
+                                    <tr>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${s.descripcion}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${s.categoria}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${configuracion.moneda}${s.monto.toFixed(2)}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${formatearFecha(s.fecha)}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${usuarios.find(u => u.username === s.usuario)?.nombre || s.usuario}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <p style="font-weight: bold; text-align: right;">Total Salidas: ${configuracion.moneda}${totalSalidas.toFixed(2)}</p>
+                    </div>
+                `;
+            }
+            
+            // Sección de bancos si corresponde
+            if (mostrarBancos && movimientosBancariosFiltrados.length > 0) {
+                contenidoHTML += `
+                    <div>
+                        <h3 style="color: #3498db; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Movimientos Bancarios</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Tipo</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Cuenta</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Descripción</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Categoría</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Monto</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Fecha</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Referencia</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${movimientosBancariosFiltrados.map(m => `
+                                    <tr>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${m.cuentaNombre}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${m.descripcion}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${m.categoria}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${configuracion.moneda}${m.monto.toFixed(2)}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${formatearFecha(m.fecha)}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${m.referencia || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <div style="display: flex; justify-content: space-between;">
+                            <p style="font-weight: bold;">Total Ingresos Bancarios: ${configuracion.moneda}${totalIngresosBancos.toFixed(2)}</p>
+                            <p style="font-weight: bold;">Total Egresos Bancarios: ${configuracion.moneda}${totalEgresosBancos.toFixed(2)}</p>
+                            <p style="font-weight: bold;">Saldo Bancos: ${configuracion.moneda}${saldoBancos.toFixed(2)}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Totales generales
+            contenidoHTML += `
+                <div style="margin-top: 30px;">
+                    <h3 style="color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 5px;">Resumen General</h3>
+                    <div style="display: flex; justify-content: space-between;">
+                        <p style="font-weight: bold;">Total Entradas: ${configuracion.moneda}${totalEntradas.toFixed(2)}</p>
+                        <p style="font-weight: bold;">Total Salidas: ${configuracion.moneda}${totalSalidas.toFixed(2)}</p>
+                        <p style="font-weight: bold;">Saldo Bancos: ${configuracion.moneda}${saldoBancos.toFixed(2)}</p>
+                        <p style="font-weight: bold;">Saldo Final: ${configuracion.moneda}${saldoTotal.toFixed(2)}</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 50px; padding-top: 10px; border-top: 1px solid #ccc; font-size: 12px; text-align: center;">
+                    <p>${configuracion.nombreEmpresa || 'Sistema de Gestión de Caja y Bancos'}</p>
+                    <p>${configuracion.direccion || ''}</p>
+                    <p>${configuracion.telefono || ''} ${configuracion.correo || ''}</p>
+                </div>
+            </div>
+            `;
+
+            // Mostrar en la sección de impresión
+            const printSection = document.getElementById('print-section');
+            printSection.innerHTML = contenidoHTML;
+            printSection.style.display = 'block';
+
+            // Esperar un momento para asegurar que el contenido se renderice antes de imprimir
+            setTimeout(() => {
+                window.print();
+                printSection.style.display = 'none';
+            }, 500);
+        }
+
+        function generarReporteJornadaPDF() {
+            if (!usuarioActual) {
+                mostrarToast('Error', 'Debe iniciar sesión para generar reportes', 'error');
+                return;
+            }
+
+            // Verificar si jsPDF está disponible
+            if (typeof window.jspdf === 'undefined') {
+                mostrarToast('Error', 'La librería para generar PDF no está disponible', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            
+            // Obtener datos filtrados
+            const jornadasUsuario = jornadas
+                .filter(j => j.usuario === usuarioActual.username)
+                .sort((a, b) => new Date(b.fechaInicio) - new Date(a.fechaInicio));
+
+            if (jornadasUsuario.length === 0) {
+                mostrarToast('Información', 'No hay jornadas registradas', 'info');
+                return;
+            }
+
+            // Crear nuevo PDF
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Configuración inicial
+            let yPos = 20;
+            const margin = 20;
+            const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
+
+            // Encabezado
+            doc.setFontSize(18);
+            doc.setTextColor(40);
+            doc.text(configuracion.nombreEmpresa || 'Mi Empresa', margin, yPos);
+            yPos += 10;
+
+            doc.setFontSize(14);
+            doc.text('Reporte de Jornadas Laborales', margin, yPos);
+            yPos += 10;
+
+            doc.setFontSize(12);
+            doc.text(`Usuario: ${usuarioActual.nombre}`, margin, yPos);
+            yPos += 7;
+            doc.text(`Generado: ${new Date().toLocaleString()}`, margin, yPos);
+            yPos += 15;
+
+            // Tabla de datos
+            const headers = [
+                'Fecha', 
+                'Hora Inicio', 
+                'Hora Fin', 
+                'Entradas', 
+                'Salidas', 
+                'Bancos',
+                'Saldo',
+                'Cierre'
+            ];
+
+            const rows = jornadasUsuario.map(j => {
+                const fechaInicio = new Date(j.fechaInicio);
+                const fechaFin = j.fechaFin ? new Date(j.fechaFin) : null;
+                
+                const totalEntradas = j.entradas.reduce((sum, e) => sum + e.monto, 0);
+                const totalSalidas = j.salidas.reduce((sum, s) => sum + s.monto, 0);
+                
+                const totalIngresosBancos = j.movimientosBancarios
+                    .filter(m => m.tipo === 'ingreso')
+                    .reduce((sum, m) => sum + m.monto, 0);
+                
+                const totalEgresosBancos = j.movimientosBancarios
+                    .filter(m => m.tipo === 'egreso')
+                    .reduce((sum, m) => sum + m.monto, 0);
+                
+                const saldoBancos = totalIngresosBancos - totalEgresosBancos;
+                const saldoTotal = totalEntradas - totalSalidas + saldoBancos;
+
+                return [
+                    fechaInicio.toLocaleDateString(),
+                    fechaInicio.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    fechaFin ? fechaFin.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--',
+                    `${configuracion.moneda}${totalEntradas.toFixed(2)}`,
+                    `${configuracion.moneda}${totalSalidas.toFixed(2)}`,
+                    `${configuracion.moneda}${saldoBancos.toFixed(2)}`,
+                    `${configuracion.moneda}${saldoTotal.toFixed(2)}`,
+                    j.montoCierre !== null ? `${configuracion.moneda}${j.montoCierre.toFixed(2)}` : '--'
+                ];
+            });
+
+            // Agregar tabla al PDF
+            doc.autoTable({
+                startY: yPos,
+                head: [headers],
+                body: rows,
+                margin: { top: yPos },
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 3,
+                    overflow: 'linebreak'
+                },
+                headStyles: {
+                    fillColor: [41, 128, 185],
+                    textColor: 255,
+                    fontStyle: 'bold'
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                }
+            });
+
+            // Totales
+            const totalEntradas = jornadasUsuario.reduce((sum, j) => sum + j.entradas.reduce((s, e) => s + e.monto, 0), 0);
+            const totalSalidas = jornadasUsuario.reduce((sum, j) => sum + j.salidas.reduce((s, e) => s + e.monto, 0), 0);
+            
+            const totalIngresosBancos = jornadasUsuario.reduce((sum, j) => 
+                sum + j.movimientosBancarios.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0), 0);
+            
+            const totalEgresosBancos = jornadasUsuario.reduce((sum, j) => 
+                sum + j.movimientosBancarios.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0), 0);
+            
+            const saldoBancos = totalIngresosBancos - totalEgresosBancos;
+            const saldoTotal = totalEntradas - totalSalidas + saldoBancos;
+
+            yPos = doc.lastAutoTable.finalY + 15;
+
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Totales Generales:', margin, yPos);
+            yPos += 10;
+
+            doc.setFont(undefined, 'normal');
+            doc.text(`Entradas: ${configuracion.moneda}${totalEntradas.toFixed(2)}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Salidas: ${configuracion.moneda}${totalSalidas.toFixed(2)}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Ingresos Bancarios: ${configuracion.moneda}${totalIngresosBancos.toFixed(2)}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Egresos Bancarios: ${configuracion.moneda}${totalEgresosBancos.toFixed(2)}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Saldo Bancos: ${configuracion.moneda}${saldoBancos.toFixed(2)}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Saldo Final: ${configuracion.moneda}${saldoTotal.toFixed(2)}`, margin + 10, yPos);
+
+            // Pie de página
+            yPos = doc.internal.pageSize.getHeight() - 20;
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(configuracion.direccion || '', margin, yPos, { align: 'center' });
+            yPos += 5;
+            doc.text(`${configuracion.telefono || ''} ${configuracion.correo || ''}`, margin, yPos, { align: 'center' });
+
+            // Guardar PDF
+            doc.save(`reporte-jornadas-${usuarioActual.username}-${new Date().toISOString().slice(0,10)}.pdf`);
+        }
+
+        // Funciones auxiliares
+        function formatearFecha(fechaTexto) {
+            if (!fechaTexto.includes('-')) return fechaTexto; // Ya está formateada
+            const [a, m, d] = fechaTexto.split('-'); // yyyy-mm-dd
+            return `${d}/${m}/${a}`; // dd/mm/yyyy
+        }
+
+        function mostrarToast(titulo, mensaje, tipo = 'success') {
+            document.getElementById('toastTitle').textContent = titulo;
+            document.getElementById('toastMessage').textContent = mensaje;
+            
+            const toastHeader = document.querySelector('.toast-header');
+            const toastBody = document.querySelector('.toast-body');
+            
+            // Resetear clases
+            toastHeader.className = 'toast-header';
+            toastBody.className = 'toast-body';
+            
+            // Añadir clases según el tipo
+            if (tipo === 'error') {
+                toastHeader.classList.add('bg-danger', 'text-white');
+                toastBody.classList.add('bg-danger', 'bg-opacity-10');
+            } else if (tipo === 'info') {
+                toastHeader.classList.add('bg-info', 'text-white');
+                toastBody.classList.add('bg-info', 'bg-opacity-10');
+            } else {
+                toastHeader.classList.add('bg-success', 'text-white');
+                toastBody.classList.add('bg-success', 'bg-opacity-10');
+            }
+            
+            document.getElementById('toastTime').textContent = new Date().toLocaleTimeString();
+            window.toast.show();
+        }
+
+        function actualizarConfiguracionUI() {
+            document.getElementById('nombreEmpresa').value = configuracion.nombreEmpresa;
+            document.getElementById('telefonoEmpresa').value = configuracion.telefono;
+            document.getElementById('correoEmpresa').value = configuracion.correo;
+            document.getElementById('direccionEmpresa').value = configuracion.direccion;
+            document.getElementById('monedaEmpresa').value = configuracion.moneda;
+            
+            // Actualizar símbolo de moneda en los inputs
+            document.getElementById('monedaEntrada').textContent = configuracion.moneda;
+            document.getElementById('monedaSalida').textContent = configuracion.moneda;
+            document.getElementById('monedaBanco').textContent = configuracion.moneda;
+            
+            // Actualizar encabezado de empresa
+            document.getElementById('encabezadoEmpresa').textContent = configuracion.nombreEmpresa;
+        }
+
+        function guardarConfiguracion() {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') {
+                mostrarToast('Error', 'Solo los administradores pueden cambiar la configuración', 'error');
+                return;
+            }
+            
+            configuracion.nombreEmpresa = document.getElementById('nombreEmpresa').value;
+            configuracion.telefono = document.getElementById('telefonoEmpresa').value;
+            configuracion.correo = document.getElementById('correoEmpresa').value;
+            configuracion.direccion = document.getElementById('direccionEmpresa').value;
+            configuracion.moneda = document.getElementById('monedaEmpresa').value;
+            
+            const nuevaContrasena = document.getElementById('contrasenaEmpresa').value;
+            if (nuevaContrasena) {
+                usuarioActual.password = nuevaContrasena;
+                document.getElementById('contrasenaEmpresa').value = '';
+            }
+            
+            if (!guardarDatos()) {
+                return;
+            }
+            
+            actualizarConfiguracionUI();
+            mostrarToast('Éxito', 'Configuración guardada correctamente');
+        }
+
+        function editarMovimiento(id, tipo) {
+            const movimiento = (tipo === 'entrada' ? entradas : salidas).find(m => m.id === id);
+            if (!movimiento) return;
+
+            document.getElementById('editarIdMovimiento').value = id;
+            document.getElementById('editarTipoMovimiento').value = tipo;
+            document.getElementById('editarDescripcion').value = movimiento.descripcion;
+            document.getElementById('editarMonto').value = movimiento.monto;
+            document.getElementById('editarFecha').value = movimiento.fecha;
+
+            const selectCategoria = document.getElementById('editarCategoria');
+            selectCategoria.innerHTML = '';
+
+            const categorias = tipo === 'entrada' ? categoriasEntrada : categoriasSalida;
+            categorias.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c;
+                option.textContent = c;
+                if (c === movimiento.categoria) option.selected = true;
+                selectCategoria.appendChild(option);
+            });
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarMovimiento'));
+            modal.show();
+        }
+
+        function guardarEdicionMovimiento() {
+            const id = parseInt(document.getElementById('editarIdMovimiento').value);
+            const tipo = document.getElementById('editarTipoMovimiento').value;
+            const descripcion = document.getElementById('editarDescripcion').value.trim();
+            const categoria = document.getElementById('editarCategoria').value;
+            const monto = parseFloat(document.getElementById('editarMonto').value);
+            const fecha = document.getElementById('editarFecha').value;
+
+            if (!descripcion || !categoria || isNaN(monto) || monto <= 0 || !fecha) {
+                mostrarToast('Error', 'Todos los campos son obligatorios y válidos', 'error');
+                return;
+            }
+
+            const lista = tipo === 'entrada' ? entradas : salidas;
+            const index = lista.findIndex(m => m.id === id);
+            if (index === -1) return;
+
+            lista[index].descripcion = descripcion;
+            lista[index].categoria = categoria;
+            lista[index].monto = monto;
+            lista[index].fecha = new Date(fecha + 'T00:00:00').toLocaleDateString('sv-SE');
+
+            if (!guardarDatos()) return;
+
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarMovimiento')).hide();
+
+            if (tipo === 'entrada') {
+                actualizarTablaEntradas();
+            } else {
+                actualizarTablaSalidas();
+            }
+
+            actualizarResumen();
+            mostrarToast('Éxito', 'Movimiento editado correctamente');
+        }
+
+        // Hacer funciones accesibles globalmente
+        window.eliminarEntrada = eliminarEntrada;
+        window.eliminarSalida = eliminarSalida;
+        window.eliminarMovimientoBanco = eliminarMovimientoBanco;
+        window.eliminarCuentaBanco = eliminarCuentaBanco;
+        window.eliminarCategoria = eliminarCategoria;
+        window.eliminarUsuario = eliminarUsuario;
+        window.limpiarFiltroEntradas = limpiarFiltroEntradas;
+        window.limpiarFiltroSalidas = limpiarFiltroSalidas;
+        window.limpiarFiltroBancos = limpiarFiltroBancos;
+        window.editarMovimiento = editarMovimiento;
+        window.editarMovimientoBanco = editarMovimientoBanco;
+        window.guardarEdicionMovimiento = guardarEdicionMovimiento;
+        window.guardarEdicionMovimientoBanco = guardarEdicionMovimientoBanco;
+    </script>
+</body>
+</html>
